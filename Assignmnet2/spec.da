@@ -1,0 +1,65 @@
+import sys
+import time
+import timeit
+config(channel= 'fifo', clock= 'Lamport')
+
+class P(process):
+    def setup(ts2:TP2, s:set, nrequests:int): pass  # s is set of all other processes
+
+    def mutex(task):
+        -- request
+        c = logical_clock()
+        send(('request', c, self), to= s)
+        await(each(received(('request', c2, p)),
+                   has= received(('release', c2, p)) or (c, self) < (c2, p))
+              and each(p in s, has= received(('ack', c, p))))
+        -- critical_section
+        send(('cs', 'in', c, self), to= ts2)
+        task()
+        send(('cs', 'out', c, self), to= ts2)
+        -- release
+        send(('release', c, self), to= s)
+
+    def receive(msg= ('request', c, p)):
+        send(('ack', c, self), to= p)
+
+    def run():
+        def task():
+            output('in cs')
+            output('releasing cs')
+        t1 = time.process_time()
+        t11 = timeit.default_timer()
+        for i in range(nrequests):
+            mutex(task)
+        t2 = time.process_time()
+        t22 = timeit.default_timer()
+        send(('performance', t2-t1, t22-t11, self), to= ts2)
+        send(('done', self), to= s)
+        await(each(p in s, has= received(('done', p))))
+        send(('done', self), to= parent())
+        await(received(('done',), from_=parent()))
+        output('terminating')
+
+def main():
+    nprocs = int(sys.argv[1]) if len(sys.argv) > 1 else 10
+    nrequests = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+
+    ps = new(P, num= nprocs)
+    for p in ps: setup(p, (ps-{p}, nrequests))
+    start(ps)
+    await(each(p in ps, has=received(('done', p))))
+    send(('done',), to=ps)
+
+# This is an executable specification that simplifies the algorithm in
+# Lamport, L. (1978). "Time, clocks, and the ordering of events in a
+# distributed system".  Communications of the ACM, 21(7):558-565.
+
+# The simplification is to remove an unnecessary q and message handler;
+# release and ack messages include the request time,
+# not timestamps unused or used for unnecessary expensive comparison.
+
+# This code includes setup and termination for serving a given number of
+# requests per process.
+
+# All labels are not needed,
+# leaving a total of 9 lines for the algorithm body and message handler.

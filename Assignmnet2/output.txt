@@ -1,0 +1,178 @@
+
+
+Shivasagars-MacBook-Pro:CSE535-A2-112077826 shivasagar$ python -m da main.da 10 10 1 5 2
+[46] da.api<MainProcess>:INFO: <Node_:63401> initialized at 127.0.0.1:(UdpTransport=16174, TcpTransport=24949).
+[46] da.api<MainProcess>:INFO: Starting program <module 'main' from '/Users/shivasagar/Desktop/CSE535/CSE535-A2-112077826/main.py'>...
+[47] da.api<MainProcess>:INFO: Running iteration 1 ...
+[47] da.api<MainProcess>:INFO: Waiting for remaining child processes to terminate...(Press "Ctrl-C" to force kill)
+---------------------------------------------------------------
+nrepetations: 1 nparameter: 5 Orig.da
+---------------------------------------------------------------
+Varying Requests
+---------------------------------------------------------------
+process: 10 requests: 2 avg_elapsed: 0.030065 avg_cpu: 0.084534
+
+process: 10 requests: 4 avg_elapsed: 0.052420 avg_cpu: 0.149790
+
+process: 10 requests: 6 avg_elapsed: 0.076091 avg_cpu: 0.217163
+
+process: 10 requests: 8 avg_elapsed: 0.098583 avg_cpu: 0.278240
+
+process: 10 requests: 10 avg_elapsed: 0.129533 avg_cpu: 0.365539
+
+---------------------------------------------------------------
+Varying Process
+---------------------------------------------------------------
+process: 2 requests: 10 avg_elapsed: 0.017639 avg_cpu: 0.023720
+
+process: 4 requests: 10 avg_elapsed: 0.045328 avg_cpu: 0.058918
+
+process: 6 requests: 10 avg_elapsed: 0.070749 avg_cpu: 0.127414
+
+process: 8 requests: 10 avg_elapsed: 0.102107 avg_cpu: 0.238562
+
+process: 10 requests: 10 avg_elapsed: 0.122989 avg_cpu: 0.351461
+
+---------------------------------------------------------------
+nrepetations: 2 nparameter: 5 Orig.da
+---------------------------------------------------------------
+Varying Requests
+---------------------------------------------------------------
+process: 10 requests: 2 avg_elapsed: 0.032231 avg_cpu: 0.095018
+
+process: 10 requests: 4 avg_elapsed: 0.055848 avg_cpu: 0.157420
+
+process: 10 requests: 6 avg_elapsed: 0.077505 avg_cpu: 0.219177
+
+process: 10 requests: 8 avg_elapsed: 0.098767 avg_cpu: 0.280062
+
+process: 10 requests: 10 avg_elapsed: 0.120099 avg_cpu: 0.357645
+
+---------------------------------------------------------------
+Varying Process
+---------------------------------------------------------------
+process: 2 requests: 10 avg_elapsed: 0.016818 avg_cpu: 0.023744
+
+process: 4 requests: 10 avg_elapsed: 0.046044 avg_cpu: 0.064735
+
+process: 6 requests: 10 avg_elapsed: 0.068728 avg_cpu: 0.126881
+
+process: 8 requests: 10 avg_elapsed: 0.097286 avg_cpu: 0.238873
+
+process: 10 requests: 10 avg_elapsed: 0.131639 avg_cpu: 0.389531
+
+---------------------------------------------------------------
+nrepetations: 1 nparameter: 5 Spec.da
+---------------------------------------------------------------
+Varying Requests
+---------------------------------------------------------------
+process: 10 requests: 2 avg_elapsed: 0.050598 avg_cpu: 0.137710
+
+process: 10 requests: 4 avg_elapsed: 0.256866 avg_cpu: 0.640996
+
+process: 10 requests: 6 avg_elapsed: 0.822761 avg_cpu: 2.116795
+
+process: 10 requests: 8 avg_elapsed: 1.957395 avg_cpu: 4.785978
+
+process: 10 requests: 10 avg_elapsed: 3.856571 avg_cpu: 9.557054
+
+---------------------------------------------------------------
+Varying Process
+---------------------------------------------------------------
+process: 2 requests: 10 avg_elapsed: 0.022982 avg_cpu: 0.031190
+
+process: 4 requests: 10 avg_elapsed: 0.184949 avg_cpu: 0.211217
+
+process: 6 requests: 10 avg_elapsed: 0.744376 avg_cpu: 1.213734
+
+process: 8 requests: 10 avg_elapsed: 1.890749 avg_cpu: 3.982518
+
+process: 10 requests: 10 avg_elapsed: 3.915094 avg_cpu: 9.779846
+
+---------------------------------------------------------------
+nrepetations: 2 nparameter: 5 Spec.da
+---------------------------------------------------------------
+Varying Requests
+---------------------------------------------------------------
+process: 10 requests: 2 avg_elapsed: 0.050496 avg_cpu: 0.127684
+
+process: 10 requests: 4 avg_elapsed: 0.256033 avg_cpu: 0.632575
+
+process: 10 requests: 6 avg_elapsed: 0.819413 avg_cpu: 2.108476
+
+process: 10 requests: 8 avg_elapsed: 1.970934 avg_cpu: 5.004754
+
+process: 10 requests: 10 avg_elapsed: 3.917904 avg_cpu: 9.819316
+
+---------------------------------------------------------------
+Varying Process
+---------------------------------------------------------------
+process: 2 requests: 10 avg_elapsed: 0.020029 avg_cpu: 0.026119
+
+process: 4 requests: 10 avg_elapsed: 0.189462 avg_cpu: 0.218214
+
+process: 6 requests: 10 avg_elapsed: 0.741761 avg_cpu: 1.268148
+
+process: 8 requests: 10 avg_elapsed: 1.879995 avg_cpu: 3.734306
+
+process: 10 requests: 10 avg_elapsed: 3.927656 avg_cpu: 9.987327
+
+---------------------------------------------------------------
+nrepetations: 1 nparameter: 5 Q1.da
+---------------------------------------------------------------
+Varying Requests
+---------------------------------------------------------------
+process: 10 requests: 2 avg_elapsed: 0.027791 avg_cpu: 0.076333
+
+process: 10 requests: 4 avg_elapsed: 0.044899 avg_cpu: 0.944640
+
+process: 10 requests: 6 avg_elapsed: 0.059544 avg_cpu: 1.118021
+
+process: 10 requests: 8 avg_elapsed: 0.069239 avg_cpu: 1.161021
+
+process: 10 requests: 10 avg_elapsed: 0.096063 avg_cpu: 1.216139
+
+---------------------------------------------------------------
+Varying Process
+---------------------------------------------------------------
+process: 2 requests: 10 avg_elapsed: 0.014904 avg_cpu: 1.015505
+
+process: 4 requests: 10 avg_elapsed: 0.035492 avg_cpu: 1.037202
+
+process: 6 requests: 10 avg_elapsed: 0.058241 avg_cpu: 1.096427
+
+process: 8 requests: 10 avg_elapsed: 0.070585 avg_cpu: 1.146364
+
+process: 10 requests: 10 avg_elapsed: 0.087747 avg_cpu: 1.206269
+
+---------------------------------------------------------------
+nrepetations: 2 nparameter: 5 Q1.da
+---------------------------------------------------------------
+Varying Requests
+---------------------------------------------------------------
+process: 10 requests: 2 avg_elapsed: 0.022553 avg_cpu: 0.059481
+
+process: 10 requests: 4 avg_elapsed: 0.044113 avg_cpu: 1.067466
+
+process: 10 requests: 6 avg_elapsed: 0.063090 avg_cpu: 1.088095
+
+process: 10 requests: 8 avg_elapsed: 0.078750 avg_cpu: 1.161729
+
+process: 10 requests: 10 avg_elapsed: 0.101998 avg_cpu: 1.242203
+
+---------------------------------------------------------------
+Varying Process
+---------------------------------------------------------------
+process: 2 requests: 10 avg_elapsed: 0.014069 avg_cpu: 1.013999
+
+process: 4 requests: 10 avg_elapsed: 0.027741 avg_cpu: 1.035214
+
+process: 6 requests: 10 avg_elapsed: 0.050962 avg_cpu: 1.080885
+
+process: 8 requests: 10 avg_elapsed: 0.064614 avg_cpu: 1.119328
+
+process: 10 requests: 10 avg_elapsed: 0.088868 avg_cpu: 1.210960
+
+[106310] da.api<MainProcess>:INFO: Main process terminated.
+Shivasagars-MacBook-Pro:CSE535-A2-112077826 shivasagar$
+

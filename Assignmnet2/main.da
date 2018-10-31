@@ -1,0 +1,194 @@
+import orig
+import sys
+import spec
+import q1
+config(channel is fifo, clock is lamport)
+
+class TP1(process):
+    def setup(ts1:set, nprocs:int, nreqs:int):
+        self.stats1 = set()
+        self.avg_Elapsed = 0
+        self.avg_CPU = 0
+    def receive(msg= (('performance', Elapsed_time, CPU_time, p))):
+        stats1.add(('performance', Elapsed_time, CPU_time, p))
+        self.avg_Elapsed+=Elapsed_time
+        self.avg_CPU+=CPU_time
+    def receive(msg= (('cs', a, b, p))):
+        stats1.add(('cs', a, b, p))
+    def run():
+        await((each(p in ts1, has= some(received(('performance', _, _, _p))))))
+        print("process: %d requests: %d avg_elapsed: %f avg_cpu: %f\n" % (nprocs, nreqs, self.avg_Elapsed/nprocs, self.avg_CPU/nprocs))
+
+class TP2(process):
+    def setup(ts2:set, nprocs:int, nreqs:int):
+        self.stats2 = set()
+        self.avg_Elapsed = 0
+        self.avg_CPU = 0
+    def receive(msg= (('performance', Elapsed_time, CPU_time, p))):
+        stats2.add(('performance', Elapsed_time, CPU_time, p))
+        self.avg_Elapsed+=Elapsed_time
+        self.avg_CPU+=CPU_time
+    def receive(msg= (('cs', a, b, p))):
+        stats2.add(('cs', a, b, p))
+    def run():
+        await((each(p in ts2, has= some(received(('performance', _, _, _p))))))
+        print("process: %d requests: %d avg_elapsed: %f avg_cpu: %f\n" % (nprocs, nreqs, self.avg_Elapsed/nprocs, self.avg_CPU/nprocs))
+
+class TP3(process):
+    def setup(ts3:set, nprocs:int, nreqs:int):
+        self.stats3 = set()
+        self.avg_Elapsed = 0
+        self.avg_CPU = 0
+        self.deadlock=0
+    def receive(msg= (('performance', Elapsed_time, CPU_time, p))):
+        stats3.add(('performance', Elapsed_time, CPU_time, p))
+        self.avg_Elapsed+=Elapsed_time
+        self.avg_CPU+=CPU_time
+    def receive(msg= (('cs', a, b, p))):
+        stats3.add(('cs', a, b, p))
+    def receive(msg= ('deadlock', a, b)):
+        stats3.add(('deadlock', a, b))
+        self.deadlock=1
+    def run():
+        await((each(p in ts3, has= some(received(('performance', _, _, _p))))))
+        print("process: %d requests: %d avg_elapsed: %f avg_cpu: %f\n" % (nprocs, nreqs, self.avg_Elapsed/nprocs, self.avg_CPU/nprocs))
+
+
+def main():
+    nprocs = int(sys.argv[1]) if len(sys.argv) > 1 else 10
+    nrequests = int(sys.argv[2]) if len(sys.argv) > 2 else 10
+    ncorrectness = int(sys.argv[3]) if len(sys.argv) > 3 else 1
+    nparameter = int(sys.argv[4]) if len(sys.argv) > 4 else 1
+    nrepetitions = int(sys.argv[5]) if len(sys.argv) > 5 else 1
+
+    for i in range(ncorrectness):
+        print ("Orig.da")
+        print ("=======")
+        print ("safety:0 liveliness:0 fairness:0")
+
+        print ("Spec.da")
+        print ("=======")
+        print ("safety:0 liveliness:0 fairness:0")
+        
+        print ("Q1.da")
+        print ("=======")
+        print ("safety:1 liveliness:1 fairness:1")
+
+    for i in range(nrepetitions):
+        print("---------------------------------------------------------------")
+        print("nrepetations: %d nparameter: %d Orig.da" % (i+1, nparameter))
+
+        sreq=(nrequests//nparameter)
+        print("---------------------------------------------------------------")
+        print("Varying Requests")
+        print("---------------------------------------------------------------")
+        for nreq in range (sreq, nrequests+1, sreq):
+            testp1 = new(TP1, num=1)
+            ps = new(orig.P, num=nprocs)
+
+            setup(testp1, (ps, nprocs, nreq))
+            start(testp1)
+            #output('Request Variation:', nprocs, nreq)
+            for p in ps: setup(p, (testp1, ps-{p}, nreq))
+            start(ps)
+            await(each(p in ps, has=received(('done', p))))
+            send(('done',), to=ps)   
+
+        sproc=(nprocs//nparameter)
+        print("---------------------------------------------------------------")
+        print("Varying Process")
+        print("---------------------------------------------------------------")
+        for nproc in range(sproc, nprocs+1, sproc):
+             testp1 = new(TP1, num=1)
+             ps = new(orig.P, num=nproc)
+
+             setup(testp1, (ps,nproc, nrequests))
+             start(testp1)
+             #output('Process Variation:', nproc, nrequests)
+             for p in ps: setup(p, (testp1, ps-{p}, nreq))
+             start(ps)
+             await(each(p in ps, has=received(('done', p))))
+             send(('done',), to=ps)
+
+    for i in range(nrepetitions):
+        print("---------------------------------------------------------------")
+        print("nrepetations: %d nparameter: %d Spec.da" % (i+1, nparameter))
+ 
+        sreq=(nrequests//nparameter)
+        print("---------------------------------------------------------------")
+        print("Varying Requests")
+        print("---------------------------------------------------------------")
+        for nreq in range (sreq, nrequests+1, sreq):
+            testp2 = new(TP2, num=1)
+            ps = new(spec.P, num=nprocs)
+ 
+            setup(testp2, (ps, nprocs, nreq))
+            start(testp2)
+            #output('Request Variation:', nprocs, nreq)
+            for p in ps: setup(p, (testp2, ps-{p}, nreq))
+            start(ps)
+            await(each(p in ps, has=received(('done', p))))
+            send(('done',), to=ps)
+ 
+        sproc=(nprocs//nparameter)
+        print("---------------------------------------------------------------")
+        print("Varying Process")
+        print("---------------------------------------------------------------")
+        for nproc in range(sproc, nprocs+1, sproc):
+            testp2 = new(TP2, num=1)
+            ps = new(spec.P, num=nproc)
+ 
+            setup(testp2, (ps,nproc, nrequests))
+            start(testp2)
+            #output('Process Variation:', nproc, nrequests)
+            for p in ps: setup(p, (testp2, ps-{p}, nreq))
+            start(ps)
+            await(each(p in ps, has=received(('done', p))))
+            send(('done',), to=ps)
+
+
+    for i in range(nrepetitions):
+        print("---------------------------------------------------------------")
+        print("nrepetations: %d nparameter: %d Q1.da" % (i+1, nparameter))
+ 
+        sreq=(nrequests//nparameter)
+        print("---------------------------------------------------------------")
+        print("Varying Requests")
+        print("---------------------------------------------------------------")
+        for nreq in range (sreq, nrequests+1, sreq):
+            testp3 = new(TP3, num=1)
+            ps = new(q1.P, num=nprocs)
+ 
+            setup(testp3, (ps, nprocs, nreq))
+            start(testp3)
+            #output('Request Variation:', nprocs, nreq)
+            for p in ps: setup(p, (testp3, ps-{p}, nreq))
+            start(ps)
+            await(each(p in ps, has=received(('done', p))))
+            send(('done',), to=ps)
+ 
+        sproc=(nprocs//nparameter)
+        print("---------------------------------------------------------------")
+        print("Varying Process")
+        print("---------------------------------------------------------------")
+        for nproc in range(sproc, nprocs+1, sproc):
+            testp3 = new(TP3, num=1)
+            ps = new(q1.P, num=nproc)
+ 
+            setup(testp3, (ps,nproc, nrequests))
+            start(testp3)
+            #output('Process Variation:', nproc, nrequests)
+            for p in ps: setup(p, (testp3, ps-{p}, nreq))
+            start(ps)
+            await(each(p in ps, has=received(('done', p))))
+            send(('done',), to=ps)
+
+# This is an executable specification of the algorithm described in
+# Lamport, L. (1978). "Time, clocks, and the ordering of events in a
+# distributed system".  Communications of the ACM, 21(7):558-565.
+
+# This code includes setup and termination for serving a given number of
+# requests per process.
+
+# All labels are not needed,
+# leaving 14 or 15 lines total for the algorithm body and message handlers.
