@@ -1,0 +1,366 @@
+############################################
+# Assignment 4                             #
+# Due: October 22, 2018                    #
+# CSE535: Asyncronous Systems.             #
+# Author: Shivasagar Boraiah.              #
+# SBUid: #112077826                        #
+# Mail: shivasagar.boraiah@stonybrook.edu  #
+############################################
+
+
+import sys
+import random
+import time
+import statistics
+import matplotlib.pyplot as plt1
+import matplotlib.pyplot as plt2
+import numpy as np
+from statistics import stdev
+from subprocess import call
+import gc
+BasicPaxos = import_da('test_bpaxos')
+PreemptPaxos = import_da('preempt_paxos')
+
+class Monitor(process):
+    def setup(learners:set, acceptors:set, proposers:set):
+        self.proposerVal = set()
+        self.acceptedVal = set()
+        self.learnerVal = set()
+
+    def run():
+        -- yieldpt
+        await(received(('done',), from_= parent()))
+        checkAgreement()
+        checkValidity()
+        checkTermination()
+        #output('MONITOR TERMINATING')
+
+    def receive (msg= ('learned', n, v), from_=p):
+        if p in learners:
+            #print('learned val : ', v)
+            learnerVal.add(v)
+    
+    def receive (msg= ('PropsedValue', n, v), from_=p):
+        if p in proposers:
+            #print('proposed val : ', v)
+            proposerVal.add(v)
+
+    def receive (msg= ('AcceptedValue', n, v), from_=p):
+        if p in acceptors:
+            acceptedVal.add(v)
+
+    def checkAgreement():
+        if len(learnerVal) != 1:
+            output('AGREEMENT VIOLATED')
+
+    def checkValidity():
+        if len(set(proposerVal)) < len(set(learnerVal)):
+            output('VALIDITY VIOLATED')
+
+    def checkTermination():
+        if len(learnerVal) == 0:
+            output('TERMINATION VIOLATED')
+
+def main():
+    # python -m da mainpaxos.da nacceptors, nproposers, nlearners, nrun, nlossrate, ndelay, nwaittime, ntp, ntl 
+    nacceptors = int(sys.argv[1]) if len(sys.argv) > 1 else 3
+    nproposers = int(sys.argv[2]) if len(sys.argv) > 2 else 3
+    nlearners  = int(sys.argv[3]) if len(sys.argv) > 3 else 3
+    nrun       = int(sys.argv[4]) if len(sys.argv) > 4 else 5
+    nlossrate  = float(sys.argv[5]) if len(sys.argv) > 5 else 0.5
+    ndelay     = int(sys.argv[6]) if len(sys.argv) > 6 else 5
+    nwaittime  = int(sys.argv[7]) if len(sys.argv) > 7 else 5
+    ntp        = int(sys.argv[8]) if len(sys.argv) > 8 else 1
+    ntl        = int(sys.argv[9]) if len(sys.argv) > 9 else 20
+    
+    cpuStartTime, cpuEndTime, elapsedStartTime, elapsedEndTime = 0, 0, 0, 0
+    
+    #file=open("correctness.txt","w+")
+
+    #we are ranging the three parameters for 3 fixed values
+    nLossRateList=np.linspace(0, nlossrate, 5)
+    nDelayList = np.linspace(0, ndelay, 5)
+    nwaitList = np.linspace(0, nwaittime, 5)
+    #nLossRateWhole= int (nlossrate*100)
+    #nLossRateValue = int(nLossRateWhole/5)
+    ndelayValue=int(ndelay/5)
+    nwaitValue=int(nwaittime/5)
+    LossRateCPU = {}
+    LossRateELAPSED = {}
+
+    call(["mkdir ./loss_results"], shell = True)
+    #fig, axes = plt1.subplots(1, 2, figsize=(5, 15))
+    plt1.figure()
+    plt2.figure()
+    AlgorithmList = [BasicPaxos, PreemptPaxos]
+
+    ######################### LossRate Variance #################################
+    ##################### FIXING DELAY and WAIT TIME ##########################
+
+    for algorithm in AlgorithmList:
+        LossRateCPU = {}
+        LossRateELAPSED = {}
+        CPU_Times_sd = []
+        Elapsed_Times_sd = []
+        sde_time_cpu = {}
+        elapsed_time_cpu = {}
+        output('LOSSRATE VARIATION', algorithm)
+        print('\n')
+        #for nLossValue in range(0.1, 0.6, 0.1):
+        for nLossValue in nLossRateList:
+            cpuTime, elapsedTime = 0, 0
+            for nrepeat in range(nrun):
+                #output(nrepeat+1, nLossValue)
+
+                monitor   = new(Monitor, num=1)
+                acceptors = new(algorithm.Acceptor, num= nacceptors)
+                #proposers = new(algorithm.Proposer, (acceptors, monitor, ntp, nLossValue, ndelayValue, nwaitValue), num= nproposers)
+                #proposers = new(algorithm.Proposer, (acceptors, monitor, ntp, nLossValue, , 0, 0), num= nproposers)
+                proposers = new(algorithm.Proposer, (acceptors, monitor, ntp, nLossValue, ndelayValue, 0), num= nproposers)
+                learners  = new(algorithm.Learner, num= nlearners)
+
+                setup(monitor, (learners,acceptors, proposers))
+                start(monitor)
+
+                for p in acceptors: setup(p, (learners, monitor, ndelay))
+                for p in learners: setup(p, (acceptors, monitor, ntl))
+
+                #Calculate CPU and ELAPSE time
+                cpuStartTime     =  time.process_time()
+                elapsedStartTime =  time.time()
+                #output(cpuStartTime, elapsedStartTime)
+
+                start(acceptors | proposers | learners)
+                await(each(l in learners, has=received(('learned',), from_=l)))
+
+                #output('done')
+                send(('done',), to= (acceptors|proposers))
+
+                cpuEndTime     = time.process_time()
+                elapsedEndTime = time.time()
+                #output(cpuEndTime, elapsedEndTime)
+
+                cpuTime     += cpuEndTime - cpuStartTime
+                elapsedTime += elapsedEndTime - elapsedStartTime
+                CPU_Times_sd.append(cpuTime)
+                Elapsed_Times_sd.append(elapsedTime)
+                #output(cpuEndTime, elapsedEndTime)
+
+                send(('done',), to= monitor)
+                #print ("Done sent to monitor")
+                gc.collect()
+
+            cpuTime=float(cpuTime/nrun)
+            elapsedTime=float(elapsedTime/nrun)
+            LossRateCPU[round(nLossValue, 2)]=round(cpuTime, 5)
+            LossRateELAPSED[round(nLossValue, 2)]=round(elapsedTime, 5)
+            sde_time_cpu[round(nLossValue, 2)] = round(stdev(CPU_Times_sd, xbar=0), 5)  
+            elapsed_time_cpu[round(nLossValue, 2)] = round(stdev(Elapsed_Times_sd, xbar=0), 5)
+            #LossRateCPUSTD=statistics.variance(l1, xbar=None)
+            #LossRateCPUSTD=np.std(LossRateCPU.values(), dtype=np.float64)
+            #LossRateELAPSEDSTD=np.std(LossRateELAPSED.values(), dtype=np.float64)
+
+        print("LOSSRATE VARIATION v/s MEAN CPU TIME", LossRateCPU)
+        print("LOSSRATE VARIATION v/s MEAN ELAPSED TIME", LossRateELAPSED)
+        print("STANDARD DEVIATION OF CPU TIME" , sde_time_cpu)
+        print("STANDARD DEVIATION OF ELAPSED TIME" , elapsed_time_cpu)
+        print('\n')
+
+        lists = sorted(LossRateCPU.items()) # sorted by key, return a list of tuples
+        x, y = zip(*lists) # unpack a list of pairs into two tuples
+        plt1.plot(x, y, label="LossRateAvgCPUTime")
+    
+        lists2 = sorted(LossRateELAPSED.items()) # sorted by key, return a list of tuples
+        x, y = zip(*lists2) # unpack a list of pairs into two tuples
+        plt2.plot(x, y, label="LossRateAvgELAPSEDTime")
+
+    #plt1.ylim[0, 0.75]
+    plt1.legend(["BasicPaxosCPUTime", "BasicPaxosELAPSEDTime", "PremeptionCPUTime", "PreemptionELAPSEDTime"], loc = "upper left",prop= {'size':5})
+    filename = './loss_results/' + 'loss1.png'
+    plt1.savefig(filename)
+    #plt2.ylim[0, 0.75]
+    plt2.legend(["BasicPaxosCPUTime", "BasicPaxosELAPSEDTime", "PremeptionCPUTime", "PreemptionELAPSEDTime"], loc = "upper left",prop= {'size':5})    
+    filename = './loss_results/' + 'loss2.png'
+    plt2.savefig(filename)
+
+    gc.collect()
+
+    ######################### DELAY Variance #####################################
+    ##################### FIXING LossRate and WAIT TIME ##########################
+    #python -m da mainpaxos_new.da 3 2 2 1 .5 5 5
+    call(["mkdir ./delay_results"], shell = True)
+    plt1.figure()
+    plt2.figure()
+    for algorithm in AlgorithmList:
+        LossRateCPU = {}
+        LossRateELAPSED = {}
+        CPU_Times_sd = []
+        Elapsed_Times_sd = []
+        sde_time_cpu = {}
+        elapsed_time_cpu = {}
+        output('DELAY VARIATION', algorithm)
+        print('\n')
+        #for nDelayValue in range(1, 6, 1):
+        for nDelayValue in nDelayList:
+        #for nDelayValue in range(ndelayValue, ndelay+1, ndelayValue):
+            cpuTime, elapsedTime = 0, 0
+            for nrepeat in range(nrun):
+                #output(nrepeat+1, nDelayValue)
+
+                monitor   = new(Monitor, num=1)
+                acceptors = new(algorithm.Acceptor, num= nacceptors)
+                #proposers = new(algorithm.Proposer, (acceptors, monitor, ntp, 0, nDelayValue, nwaitValue), num= nproposers)
+                #proposers = new(algorithm.Proposer, (acceptors, monitor, ntp, 0, nDelayValue, 0), num= nproposers)
+                proposers = new(algorithm.Proposer, (acceptors, monitor, ntp, 0, nDelayValue, nwaitValue), num= nproposers)
+                learners  = new(algorithm.Learner, num= nlearners)
+
+                setup(monitor, (learners,acceptors, proposers))
+                start(monitor)
+
+                for p in acceptors: setup(p, (learners, monitor, nDelayValue))
+                for p in learners: setup(p, (acceptors, monitor, ntl))
+
+                #Calculate CPU and ELAPSE time
+                cpuStartTime     =  time.process_time()
+                elapsedStartTime =  time.time()
+                #output(cpuStartTime, elapsedStartTime)
+
+                start(acceptors | proposers | learners)
+                await(each(l in learners, has=received(('learned',), from_=l)))
+
+                #output('done')
+                send(('done',), to= (acceptors|proposers))
+
+                cpuEndTime     = time.process_time()
+                elapsedEndTime = time.time()
+                CPU_Times_sd.append(cpuTime)
+                Elapsed_Times_sd.append(elapsedTime)
+                #output(cpuEndTime, elapsedEndTime)
+
+                cpuTime     += cpuEndTime - cpuStartTime
+                elapsedTime += elapsedEndTime - elapsedStartTime
+                #output(cpuEndTime, elapsedEndTime)
+
+                send(('done',), to= monitor)
+                #print ("Done sent to monitor")
+                gc.collect()
+
+            cpuTime=float(cpuTime/nrun)
+            elapsedTime=float(elapsedTime/nrun)
+            LossRateCPU[round(nDelayValue, 2)]=round(cpuTime, 5)
+            LossRateELAPSED[round(nDelayValue, 2)]=round(elapsedTime, 5)
+            sde_time_cpu[round(nDelayValue, 2)] = round(stdev(CPU_Times_sd, xbar=0), 5)  
+            elapsed_time_cpu[round(nDelayValue, 2)] = round(stdev(Elapsed_Times_sd, xbar=0), 5)
+
+        print("DELAY VARIATION v/s MEAN CPU TIME", LossRateCPU)
+        print("DELAY VARIATION v/s MEAN ELAPSED TIME", LossRateELAPSED)
+        print("STANDARD DEVIATION OF CPU TIME" , sde_time_cpu)
+        print("STANDARD DEVIATION OF ELAPSED TIME" , elapsed_time_cpu)
+        print('\n')
+
+        lists = sorted(LossRateCPU.items()) # sorted by key, return a list of tuples
+        x, y = zip(*lists) # unpack a list of pairs into two tuples
+        plt1.plot(x, y, label="MessageDelayAvgCPUTime")
+    
+        lists2 = sorted(LossRateELAPSED.items()) # sorted by key, return a list of tuples
+        x, y = zip(*lists2) # unpack a list of pairs into two tuples
+        plt2.plot(x, y, label="MessageDelayAvgELAPSEDTime")
+
+    #plt1.ylim[0, 0.75]
+    plt1.legend(["BasicPaxosCPUTime", "BasicPaxosELAPSEDTime", "PremeptionCPUTime", "PreemptionELAPSEDTime"], loc = "upper left",prop= {'size':5})
+    filename = './delay_results/' + 'delay1.png'
+    plt1.savefig(filename)
+    #plt2.ylim[0, 0.75]
+    plt2.legend(["BasicPaxosCPUTime", "BasicPaxosELAPSEDTime", "PremeptionCPUTime", "PreemptionELAPSEDTime"], loc = "upper left",prop= {'size':5})    
+    filename = './delay_results/' + 'delay2.png'
+    plt2.savefig(filename)
+
+    gc.collect()
+
+    ######################### WAITTIME Variance #####################################
+    ##################### FIXING LossRate and WAIT TIME ##########################
+    call(["mkdir ./waittime_results"], shell = True)
+    plt1.figure()
+    plt2.figure()
+    for algorithm in AlgorithmList:
+        LossRateCPU = {}
+        LossRateELAPSED = {}
+        CPU_Times_sd = []
+        Elapsed_Times_sd = []
+        sde_time_cpu = {}
+        elapsed_time_cpu = {}
+        output('WAITIME VARIATION', algorithm)
+        print('\n')
+        #for nwaitValue in range(1, 6, 1):
+        for nwaitValue in nwaitList:
+            cpuTime, elapsedTime = 0, 0
+            for nrepeat in range(nrun):
+                #output(nrepeat+1, nwaitValue)
+
+                monitor   = new(Monitor, num=1)
+                acceptors = new(algorithm.Acceptor, num= nacceptors)
+                proposers = new(algorithm.Proposer, (acceptors, monitor, ntp, nlossrate/5, 0, nwaitValue), num= nproposers)
+                #proposers = new(algorithm.Proposer, (acceptors, monitor, ntp, 0, ndelayValue, nwaitValue), num= nproposers)
+                #proposers = new(algorithm.Proposer, (acceptors, monitor, ntp, 0, 0, nwaitValue), num= nproposers)
+                learners  = new(algorithm.Learner, num= nlearners)
+
+                setup(monitor, (learners,acceptors, proposers))
+                start(monitor)
+
+                for p in acceptors: setup(p, (learners, monitor, nDelayValue))
+                for p in learners: setup(p, (acceptors, monitor, ntl))
+
+                #Calculate CPU and ELAPSE time
+                cpuStartTime     =  time.process_time()
+                elapsedStartTime =  time.time()
+                #output(cpuStartTime, elapsedStartTime)
+
+                start(acceptors | proposers | learners)
+                await(each(l in learners, has=received(('learned',), from_=l)))
+
+                #output('done')
+                send(('done',), to= (acceptors|proposers))
+
+                cpuEndTime     = time.process_time()
+                elapsedEndTime = time.time()
+                #output(cpuEndTime, elapsedEndTime)
+
+                cpuTime     += cpuEndTime - cpuStartTime
+                elapsedTime += elapsedEndTime - elapsedStartTime
+                CPU_Times_sd.append(cpuTime)
+                Elapsed_Times_sd.append(elapsedTime)
+                #output(cpuEndTime, elapsedEndTime)
+
+                send(('done',), to= monitor)
+                #print ("Done sent to monitor")
+                gc.collect()
+
+            cpuTime=float(cpuTime/nrun)
+            elapsedTime=float(elapsedTime/nrun)
+            LossRateCPU[round(nwaitValue, 2)]=round(cpuTime, 5)
+            LossRateELAPSED[round(nwaitValue, 2)]=round(elapsedTime, 5)
+            sde_time_cpu[round(nwaitValue, 2)] = round(stdev(CPU_Times_sd, xbar=0), 5)  
+            elapsed_time_cpu[round(nwaitValue, 2)] = round(stdev(Elapsed_Times_sd, xbar=0), 5)
+
+        print("WAITTIME VARIATION v/s MEAN CPU TIME", LossRateCPU)
+        print("WAITTIME VARIATION v/s ELAPSED CPU TIME", LossRateELAPSED)
+        print("STANDARD DEVIATION OF CPU TIME" , sde_time_cpu)
+        print("STANDARD DEVIATION OF ELAPSED TIME" , elapsed_time_cpu)
+        print('\n')
+
+        lists = sorted(LossRateCPU.items()) # sorted by key, return a list of tuples
+        x, y = zip(*lists) # unpack a list of pairs into two tuples
+        plt1.plot(x, y, label="MessageDelayAvgCPUTime")
+    
+        lists2 = sorted(LossRateELAPSED.items()) # sorted by key, return a list of tuples
+        x, y = zip(*lists2) # unpack a list of pairs into two tuples
+        plt2.plot(x, y, label="MessageDelayAvgELAPSEDTime")
+
+    #plt1.ylim[0, 0.75]
+    plt1.legend(["BasicPaxosCPUTime", "BasicPaxosELAPSEDTime", "PremeptionCPUTime", "PreemptionELAPSEDTime"], loc = "upper left",prop= {'size':5})
+    filename = './waittime_results/' + 'Waittime1.png'
+    plt1.savefig(filename)
+    #plt2.ylim[0, 0.75]
+    plt2.legend(["BasicPaxosCPUTime", "BasicPaxosELAPSEDTime", "PremeptionCPUTime", "PreemptionELAPSEDTime"], loc = "upper left",prop= {'size':5})    
+    filename = './waittime_results/' + 'Waittime2.png'
+    plt2.savefig(filename)

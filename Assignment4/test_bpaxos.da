@@ -1,0 +1,135 @@
+############################################
+# Assignment 4                             #
+# Due: October 22, 2018                    #
+# CSE535: Asyncronous Systems.             #
+# Author: Shivasagar Boraiah.              #
+# SBUid: #112077826                        #
+# Mail: shivasagar.boraiah@stonybrook.edu  #
+############################################
+
+import sys
+from random import randint
+from numpy.random import choice
+import copy
+import time
+TIMEOUT = 1
+
+class Proposer(process):
+    def setup(acceptors:set, monitor:Monitor, tp:int, nLossRate:float, nDelay: float, nWaitTime: int):
+        self.n = None              # proposal number
+        self.majority = acceptors  # majority of acceptors; all in other papers
+
+    def Loss():
+        modifiedmajority=set()
+        majorityList = list(majority)
+        draw = [int(choice((0,1), 1, p= [nLossRate, 1 - nLossRate], replace= False)) for i in range(len(majority))]
+        #print (draw)
+        for i,j in enumerate(draw):
+            if j==1:
+                modifiedmajority.add(majorityList[i])
+                #print ("added element : ", majorityList[i])
+        #print ("modified : ", modifiedmajority)
+        return modifiedmajority
+
+    def to_consent():
+        n = (0, self) if n == None else (n[0]+1, self)  # pick a prop num
+        #print ("generate proposal : ",  n)
+        #print( "majority : ", majority)
+        modifiedmajority = Loss()
+        #send(('prepare', n), to= majority)
+        nDelayInt = int(nDelay)
+        delay = randint(0, nDelayInt)
+        time.sleep(delay)
+
+        send(('prepare', n), to= modifiedmajority)
+
+        if await(len(setof(a, received(('respond', _n, _), from_ =a)))
+                 > len(acceptors)/2):
+            #print ("proposal responded")
+            v = anyof(setof(v, received(('respond', _n, (n2, v))),
+                            n2==max(setof(n2, received(('respond', _n, (n2, _))))))
+                      or {randint(1,100)})  # any value, pick in 1..100
+            #print("values selected", n, v)
+            responded = setof(a, received(('respond', _n, _), from_ =a))
+            
+            #delay = randint(0, nDelay)
+            #time.sleep(delay)
+            
+            send(('accept', n, v), to= responded)
+
+            send(('PropsedValue', n, v), to=  monitor)
+            debug('### chose', n, v)
+
+            time.sleep(nWaitTime)
+
+        elif timeout(tp):
+            #print("failed proposal : ", n)
+            #output('failed proposal number', n)
+            time.sleep(nWaitTime)
+
+
+
+    def run():
+        while not received(('done',)):
+            to_consent()
+        #output('terminating')
+
+    def anyof(s):
+        return next(iter(s)) if s else None
+
+class Acceptor(process):
+    def setup(learners:set, monitor:Monitor, nDelay: float): pass
+
+    def receive(msg= ('prepare', n), from_= p):
+        if each(sent(('respond', n2, _)), has= n > n2):
+            maxprop = anyof(setof((n, v), sent(('accepted', n, v)),
+                               n==max(setof(n, sent(('accepted', n, _))))))
+            #print ("Phase 1b : responded with maxprop : ", maxprop, " to : ", n);
+            #delay = randint(0, nDelay)
+            #time.sleep(delay)
+            send(('respond', n, maxprop), to =p)
+        else: pass
+            #print ("Phase 1b : acceptor has already promised to greater value i.e : to : ", n)
+
+    def receive(msg= ('accept', n, v)):
+        if not some(sent(('respond', n2, _)), has= n2 > n):
+            #print("acceptor decided value : ", n, v)
+            send(('accepted', n, v), to= learners)
+        else: pass
+            #print ("Phase 2b : acceptor has already promised to greater value  to ", n)
+
+    def run():
+        await(received(('done',)))
+        #output('terminating')
+
+    def anyof(s):
+        """return any element of set s if s is not empty or 'None' otherwise"""
+        return next(iter(s)) if s else None
+
+class Learner(process):
+    def setup(acceptors:set, monitor:Monitor, tl:int):pass
+
+    def learn():
+        if await(some(received(('accepted', n, v)),
+                      has= len(setof(a, received(('accepted', _n, _v), from_=a)))
+                           > len(acceptors)/2)):
+            #output('learned', n, v)
+            #v1 = randint(1,100)
+            send(('learned', n, v), to= monitor)
+
+        elif timeout(tl):
+            output('failed learning anything')
+
+    def run():
+        learn()
+        #output('terminating')
+        send(('learned', ), to=nodeof(self))
+
+
+
+# This is an executable specification of the algorithm described in
+# Lamport, L. (2001).  Paxos Made Simple.  ACM SIGACT News 
+# (Distributed Computing Column), 32(4):51-58, December.
+
+# This code includes setup and termination for running repeated rounds until
+# the learners all terminate after learning the consent value or timeout.
